@@ -16,6 +16,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telecom.TelecomManager;
 import android.telephony.PhoneStateListener;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
@@ -27,12 +29,14 @@ import ru.lexone.selfrecall.Reciever;
 
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity {
 
     public String simN = "";
+    public Integer callstate2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,16 +56,27 @@ public class MainActivity extends AppCompatActivity {
         //обязательная инициализация TelephonyManager
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 
-        telephonyManager.listen(stateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        telephonyManager.listen(new PhoneStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
+
+        SubscriptionManager sManager = (SubscriptionManager) this.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        List subList = sManager.getActiveSubscriptionInfoList();
+
+        SubscriptionInfo firstSub = (SubscriptionInfo) subList.get(0);
+        SubscriptionInfo secondSub = (SubscriptionInfo) subList.get(1);
+
+        TelephonyManager mSim1TelephonyManager = telephonyManager.createForSubscriptionId(secondSub.getSubscriptionId());
+
+        TelephonyManager mSim2TelephonyManager = telephonyManager.createForSubscriptionId(firstSub.getSubscriptionId());
+        mSim2TelephonyManager.listen(new PhoneStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
+
+        if ((mSim1TelephonyManager.CALL_STATE_RINGING == 1) && (mSim2TelephonyManager.CALL_STATE_IDLE == 0)) {
+            mSim1TelephonyManager.listen(stateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        } else {
+            showToast("Листнер не создан");
+        }
+
 
         setSupportText();
-
-        Reciever detectSim = new Reciever();
-        simN = detectSim.simId;
-
-
-
-
 
     }
 
@@ -90,6 +105,9 @@ public class MainActivity extends AppCompatActivity {
     //переопределяем метод onCallStateListener, чтобы получать уведомления об изменении состояния телефонного вызова
     PhoneStateListener stateListener = new PhoneStateListener() {
         public void onCallStateChanged(int state, String incomingNumber) {
+                showToast("call state: ringing" + incomingNumber);
+
+
             switch (state) {
                 case TelephonyManager.CALL_STATE_IDLE:
                     showToast("Call state: idle");
@@ -98,8 +116,6 @@ public class MainActivity extends AppCompatActivity {
                     showToast("Call state: offhook");
                     break;
                 case TelephonyManager.CALL_STATE_RINGING:
-                    showToast("call state: ringing" + incomingNumber);
-
 
                     // Поступил звонок с номера incomingNumber
                     TextView incNum = findViewById(R.id.inc_num);
@@ -111,20 +127,17 @@ public class MainActivity extends AppCompatActivity {
 
                     //doMagicWork(incomingNumber);
 
-                    if (incomingNumber.equalsIgnoreCase("+74985201570")) {
+                    if (incomingNumber.equalsIgnoreCase("+74956039036")) {
                         endCall();
-
-
-
-                        showToast("Номер сим карты: " + simN);
-
                         try {
                             sleep(5500);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        callGates();
+                        //callGates();
+                        break;
                     }
+
 
             }
         }

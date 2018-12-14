@@ -14,7 +14,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <receiver android:name=".Reciever"/>
+        <receiver android:name=".Reciever">
+        <intent-filter>
+            <action android:name="android.intent.action.PHONE_STATE" />
+        </intent-filter>
+        </receiver>
 
         <activity
             android:name=".MainActivity"
